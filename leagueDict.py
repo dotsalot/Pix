@@ -5,7 +5,7 @@ queueMode =  {
     'RANKED_FLEX_TT': 'Twisted Treeline Flex'
 }
 
-rank = {
+ranks = {
     'CHALLENGER': 'Challenger',
     'GRANDMASTER':  'Grandmaster',
     'MASTER': 'Master',

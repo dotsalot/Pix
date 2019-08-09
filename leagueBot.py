@@ -3,18 +3,18 @@ import discord
 from discord.ext import commands
 import requests
 from secrets import key, token
-from leagueDict import queueMode, rank, queueId, champs
+from leagueDict import queueMode, ranks, queueId, champs
 
 #api calls
-def summonerInfoAPI(name):
+def summonerInfoAPI(name): #used to get encrypted summoner id
     summonerInfoURL = f'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}?api_key={key}'
     return requests.get(url = summonerInfoURL).json()
 
-def detailedInfoAPI(encryptedSummonerId):
+def detailedInfoAPI(encryptedSummonerId): #used to get ranked info  for summoner
     detailedInfoURL  =  f'https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{encryptedSummonerId}?api_key={key}'
     return requests.get(url  =  detailedInfoURL).json()
 
-def gameInfoAPI(encryptedSummonerId):
+def gameInfoAPI(encryptedSummonerId): #used to get match info
     gameInfoURL =  f'https://na1.api.riotgames.com/lol/spectator/v4/active-games/by-summoner/{encryptedSummonerId}?api_key={key}'
     return requests.get(url = gameInfoURL).json()
 
@@ -25,7 +25,7 @@ def playerInfo(player):
     soloRank = player['rank']
     return f'\t\t**{champ}** {name}\n\t\t\t{soloRank}\n'
 
-def division(queue, tier):
+def divisionInfo(queue, tier):
     if tier in ['Challenger', 'Grandmaster', 'Master']:
         return ''
     else:
@@ -66,8 +66,8 @@ async def info(ctx, name: str):
     response = summonerRankedInfo
     for queue in detailedInfoRequest:
         queueType = queueMode[queue['queueType']]
-        tier = rank[queue['tier']]
-        division = division(queue, tier)
+        tier = ranks[queue['tier']]
+        division = divisionInfo(queue, tier)
         lp =  queue['leaguePoints']
         wins  = queue['wins']
         losses = queue['losses']
@@ -118,8 +118,8 @@ async def game(ctx, name: str):
         detailedInfoRequest = detailedInfoAPI(encryptedSummonerId)
         for queue in detailedInfoRequest:
             if queue['queueType'] == 'RANKED_SOLO_5x5':
-                tier = rank[queue['tier']]
-                division = division(queue, tier)
+                tier = ranks[queue['tier']]
+                division = divisionInfo(queue, tier)
                 info['rank'] = f'{tier} {division}'
                 break
         if 'rank' not in info:
@@ -141,8 +141,33 @@ async def game(ctx, name: str):
     await ctx.send(response)
 
 @bot.command()
+async def tft(ctx, *args):
+    embed  = discord.Embed(title  =  'TFT', description  = 'Ranked stats for:')
+    for arg in  args:
+        summonerInfoRequest = summonerInfoAPI(arg)
+        if 'status' in summonerInfoRequest:
+            embed.add_field(name = arg, value = 'Summoner not found')
+        else:
+            encryptedSummonerId = summonerInfoRequest['id']
+            summonerName = summonerInfoRequest['name']
+            detailedInfoRequest = detailedInfoAPI(encryptedSummonerId)
+            ranked = False
+            for queue in detailedInfoRequest:
+                if queue['queueType'] == 'RANKED_TFT':
+                    tier = ranks[queue['tier']]
+                    division = divisionInfo(queue, tier)
+                    ranked = True
+                    break
+            if ranked:
+                rank = f'{tier} {division}'
+            else:
+                rank  = 'Unranked'
+            embed.add_field(name = f'{summonerName}', value = f'{rank}')
+    await ctx.send(embed = embed)
+
+@bot.command()
 async def help(ctx):
-    embed = discord.Embed(title="Yummi!!", description="Yummi is here to help! List of commands are:", color=0xeee657)
+    embed = discord.Embed(title="Pix!!", description="Pix is here to help! List of commands are:", color=0xeee657)
 
     embed.add_field(name="!hello", value="Says hello!", inline=False)
     embed.add_field(name="!game summonerName", value="Gives the game information of the summoner, remember no spaces!", inline=False)
