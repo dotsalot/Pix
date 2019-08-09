@@ -2,28 +2,10 @@
 import discord
 from discord.ext import commands
 import requests
-from key import key
+from key import key, token
+from leagueDict import queueMode, rank, queueId, champs
 
-#league info
-print(key)
-
-leagueDict =  {
-    'RANKED_SOLO_5x5': 'Solo Queue',
-    'RANKED_FLEX_SR': 'Summoner\'s Rift Flex',
-    'RANKED_TFT': 'Teamfight Tactics',
-    'RANKED_FLEX_TT': 'Twisted Treeline Flex',
-    'CHALLENGER': 'Challenger',
-    'GRANDMASTER':  'Grandmaster',
-    'MASTER': 'Master',
-    'DIAMOND': 'Diamond',
-    'PLATINUM':  'Platinum',
-    'GOLD': 'Gold',
-    'SILVER': 'Silver',
-    'BRONZE': 'Bronze',
-    'IRON': 'Iron'
-}
-
-TOKEN = 'NjA4Nzc2NDcxMjQyMzQyNDAx.XUw9ow.rCfU4o8THvojoGLyFwVgHiCv9uQ'
+TOKEN = token
 
 bot = commands.Bot(command_prefix  = '!')
 
@@ -69,23 +51,24 @@ async def info(ctx, name: str):
         error = summonerInfoRequest['status']['status_code']
         response = f'> Error! Status Code {error}'
         await ctx.send(response)
-    encryptedSummonerId = summonerInfoRequest['id']
-    summonerName = summonerInfoRequest['name']
-    detailedInfoURL  =  f'https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{encryptedSummonerId}?api_key={key}'
-    detailedInfoRequest = requests.get(url  =  detailedInfoURL).json()
-    rankedInfo = f'>>> __**{summonerName}** ranked info:__\n'
-    for queue in detailedInfoRequest:
-        queueType = leagueDict[queue['queueType']]
-        tier = leagueDict[queue['tier']]
-        if tier in ['Challenger', 'Grandmaster', 'Master']:
-            rank = ''
-        else:
-            rank = queue['rank']
-        lp =  queue['leaguePoints']
-        wins  = queue['wins']
-        losses = queue['losses']
-        rankedInfo += f'**{queueType}:**\n\t{tier} {rank} {lp} LP\n\t{int(wins/(losses+wins)*100)}% win ratio\n\t{wins} wins {losses} losses\n'
-    await ctx.send(rankedInfo)
+    else:
+        encryptedSummonerId = summonerInfoRequest['id']
+        summonerName = summonerInfoRequest['name']
+        detailedInfoURL  =  f'https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{encryptedSummonerId}?api_key={key}'
+        detailedInfoRequest = requests.get(url  =  detailedInfoURL).json()
+        rankedInfo = f'>>> __**{summonerName}** ranked info:__\n'
+        for queue in detailedInfoRequest:
+            queueType = queueMode[queue['queueType']]
+            tier = rank[queue['tier']]
+            if tier in ['Challenger', 'Grandmaster', 'Master']:
+                division = ''
+            else:
+                division = queue['rank']
+            lp =  queue['leaguePoints']
+            wins  = queue['wins']
+            losses = queue['losses']
+            rankedInfo += f'**{queueType}:**\n\t{tier} {division} {lp} LP\n\t{int(wins/(losses+wins)*100)}% win ratio\n\t{wins} wins {losses} losses\n'
+        await ctx.send(rankedInfo)
 
     
 
@@ -93,9 +76,61 @@ async def info(ctx, name: str):
 async def game(ctx, name: str):
     summonerInfoURL = f'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}?api_key={key}'
     summonerInfoRequest = requests.get(url = summonerInfoURL).json()
-    encryptedSummonerId = summonerInfoRequest['id']
-    gameInfoURL =  f'https://na1.api.riotgames.com/lol/spectator/v4/active-games/by-summoner/{encryptedSummonerId}?api_key={key}'
-    gameInfoRequest = requests.get(url = gameInfoURL).json()
-    await ctx.send('hi')
+    if 'status' in summonerInfoRequest:
+        error = summonerInfoRequest['status']['status_code']
+        response = f'> Error! Status Code {error}'
+        await ctx.send(response)
+    else:
+        encryptedSummonerId = summonerInfoRequest['id']
+        summonerName = summonerInfoRequest['name']
+        gameInfoURL =  f'https://na1.api.riotgames.com/lol/spectator/v4/active-games/by-summoner/{encryptedSummonerId}?api_key={key}'
+        gameInfoRequest = requests.get(url = gameInfoURL).json()
+        if 'status' in gameInfoRequest:
+            error = gameInfoRequest['status']['status_code']
+            response = f'> Error! Status Code {error}\n {summonerName} probably not in a game'
+            await ctx.send(response)
+
+        else:
+            gameTypeId = gameInfoRequest['gameQueueConfigId']
+            gameType  = queueId[str(gameTypeId)]
+            blue = []
+            red = []
+            for player in gameInfoRequest['participants']:
+                info = dict()
+                info['name'] = player['summonerName']
+                encryptedSummonerId =  player['summonerId']
+                info['champion'] = champs[str(player['championId'])]
+                detailedInfoURL  =  f'https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{encryptedSummonerId}?api_key={key}'
+                detailedInfoRequest = requests.get(url  =  detailedInfoURL).json()
+                for queue in detailedInfoRequest:
+                    if queue['queueType'] == 'RANKED_SOLO_5x5':
+                        tier = rank[queue['tier']]
+                        if tier in ['Challenger', 'Grandmaster', 'Master']:
+                            division = '' 
+                        else:
+                            division = queue['rank']
+                        info['rank'] = f'{tier} {division}'
+                        break
+                if 'rank' not in info:
+                    info['rank'] = 'Unranked'
+
+                if player['teamId'] == 100:
+                    blue.append(info)
+                else:
+                    red.append(info)
+
+            gameInfo = f'>>> __**{gameType}**__\n**Blue Side**\n'
+            for player in blue:
+                name  = player['name']
+                champ = player['champion']
+                soloRank = player['rank']
+                gameInfo += f'{name} **{champ}**\n\t{soloRank}\n'
+            gameInfo += '**Red Side**\n'
+            for player in red:
+                name  = player['name']
+                champ = player['champion']
+                soloRank = player['rank']
+                gameInfo += f'{name} **{champ}**\n\t{soloRank}\n'
+            await ctx.send(gameInfo)
 
 bot.run(TOKEN)
