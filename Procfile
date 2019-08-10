@@ -1,1 +1,1 @@
-leagueBot.py
+worker: leagueBot.py
