@@ -1,9 +1,9 @@
-# Work with Python 3.6
 import discord
 from discord.ext import commands
 import requests
+from random import choice
 from secrets import key, token
-from leagueDict import queueMode, ranks, queueId, champs
+from leagueDict import queueMode, ranks, queueId, champsById, roles, champsByName
 
 #api calls
 def summonerInfoAPI(name): #used to get encrypted summoner id
@@ -17,6 +17,10 @@ def detailedInfoAPI(encryptedSummonerId): #used to get ranked info  for summoner
 def gameInfoAPI(encryptedSummonerId): #used to get match info
     gameInfoURL =  f'https://na1.api.riotgames.com/lol/spectator/v4/active-games/by-summoner/{encryptedSummonerId}?api_key={key}'
     return requests.get(url = gameInfoURL).json()
+
+def summonerChampMasterAPI(encryptedSummonerId, champId):
+   summonerChampMasterInfo = f'https://na1.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-summoner/{encryptedSummonerId}/by-champion/{champId}?api_key={key}'
+   return requests.get(url = summonerChampMasterInfo).json()
 
 #functions
 def playerInfo(player):
@@ -54,8 +58,7 @@ async def info(ctx, name: str):
     summonerInfoRequest = summonerInfoAPI(name)
     #summoner  not  found/bad api key
     if 'status' in summonerInfoRequest:
-        error = summonerInfoRequest['status']['status_code']
-        response = f'> Error! Status Code {error}'
+        response = f'> Error! Summoner not found (or bad API key)'
         await ctx.send(response)
         return
     #summoner found
@@ -64,6 +67,10 @@ async def info(ctx, name: str):
     detailedInfoRequest = detailedInfoAPI(encryptedSummonerId)
     summonerRankedInfo = f'>>> __**{summonerName}** ranked info:__\n'
     response = summonerRankedInfo
+    if len(detailedInfoRequest) == 0:
+        response += 'Unranked in all queues!'
+        await ctx.send(response)
+        return
     for queue in detailedInfoRequest:
         queueType = queueMode[queue['queueType']]
         tier = ranks[queue['tier']]
@@ -86,8 +93,7 @@ async def game(ctx, name: str):
     summonerInfoRequest = summonerInfoAPI(name)
     #summoner not  found/bad api key
     if 'status' in summonerInfoRequest:
-        error = summonerInfoRequest['status']['status_code']
-        response = f'> Error! Status Code {error}'
+        response = f'> Error! Summoner not found (or bad API key)'
         await ctx.send(response)
         return
     encryptedSummonerId = summonerInfoRequest['id']
@@ -95,9 +101,7 @@ async def game(ctx, name: str):
     gameInfoRequest = gameInfoAPI(encryptedSummonerId)
     #summoner not  in game/in  tft  game/bad api key
     if 'status' in gameInfoRequest:
-        error = gameInfoRequest['status']['status_code']
-        errorMsg = f'>>> Error! Status Code {error}\n'
-        errorSummoner = f'{summonerName} probably not in a game ¯\\_(ツ)_/¯\n'
+        errorMsg = f'>>> Error! {summonerName} probably not in a game ¯\\_(ツ)_/¯\n'
         response = errorMsg + errorSummoner
         await ctx.send(response)
         return
@@ -111,8 +115,8 @@ async def game(ctx, name: str):
         info['name'] = player['summonerName']
         encryptedSummonerId =  player['summonerId']
         champId = str(player['championId'])
-        if champId in  champs:
-            info['champion'] = champs[champId]
+        if champId in  champsById:
+            info['champion'] = champsById[champId]
         else:
             info['champion']  = 'Unknown Champion'
         detailedInfoRequest = detailedInfoAPI(encryptedSummonerId)
@@ -140,13 +144,17 @@ async def game(ctx, name: str):
         response += playerInfo(player)
     await ctx.send(response)
 
-@bot.command()
+@bot.command() #tft ranked info
 async def tft(ctx, *args):
     embed  = discord.Embed(title  =  'TFT', description  = 'Ranked stats for:')
     for arg in  args:
-        summonerInfoRequest = summonerInfoAPI(arg)
+        if arg[-1] == ',':
+            name = arg[:-1]
+        else:
+            name  =  arg
+        summonerInfoRequest = summonerInfoAPI(name)
         if 'status' in summonerInfoRequest:
-            embed.add_field(name = arg, value = 'Summoner not found')
+            embed.add_field(name = name, value = 'Summoner not found')
         else:
             encryptedSummonerId = summonerInfoRequest['id']
             summonerName = summonerInfoRequest['name']
@@ -166,13 +174,49 @@ async def tft(ctx, *args):
     await ctx.send(embed = embed)
 
 @bot.command()
-async def help(ctx):
-    embed = discord.Embed(title="Pix!!", description="Pix is here to help! List of commands are:", color=0xeee657)
+async  def random(ctx, role, name = None):
+    role = role.lower()
+    if role not in ['top', 'mid', 'jungle', 'bot', 'support']:
+        response = 'Unrecognized role. List of accepted roles:\ntop\njungle\nmid\nbot\nsupport'
+        await  ctx.send(response)
+        return
+    champ = choice(roles[role])
+    if  name == None: #only  want a random champ for a  role
+        await ctx.send(f'You wanna play {role}? Try **{champ}** this game')
+        return
+    seen = set()
+    summonerInfoRequest = summonerInfoAPI(name)
+    #summoner  not  found/bad api key
+    if 'status' in summonerInfoRequest:
+        response = f'> Error! Summoner not found (or bad API key)'
+        await ctx.send(response)
+        return
+    #summoner found
+    encryptedSummonerId = summonerInfoRequest['id']
+    summonerName = summonerInfoRequest['name']
+    while len(seen) != len(roles[role]):
+        if champ not in seen:
+            seen.add(champ)
+            champId = champsByName[champ]
+            champInfo = summonerChampMasterAPI(encryptedSummonerId, champId)
+            if not champInfo['chestGranted']:
+                await ctx.send(f'You haven\'t gotten a chest for **{champ}** yet')
+                return
 
-    embed.add_field(name="!hello", value="Says hello!", inline=False)
-    embed.add_field(name="!game summonerName", value="Gives the game information of the summoner, remember no spaces!", inline=False)
-    embed.add_field(name="!info summonerName", value="Gives the ranked information of the summoner, remember no spaces!", inline=False)
-    embed.add_field(name="!help", value="Gives this message", inline=False)
+        champ = choice(roles[role])
+
+    await ctx.send(f'Wow! You have no chests available for {role}!')
+
+@bot.command()
+async def help(ctx):
+    embed = discord.Embed(title='Pix!!', description='Pix is here to help! List of commands are:', color = 0xeee657)
+
+    embed.add_field(name = '!hello', value = 'Says hello!', inline = False)
+    embed.add_field(name = '!game summonerName', value = 'Gives the game information of the summoner, remember no spaces!', inline = False)
+    embed.add_field(name = '!info summonerName', value = 'Gives the ranked information of the summoner, remember no spaces!', inline = False)
+    embed.add_field(name = '!tft [summonerName]s', value = 'Gives the ranked information of the summoners, remember no spaces in the names, separate individual summoners by a space!', inline = False)
+    embed.add_field(name = 'random role [summonerName]', value = 'Gives a random champ suggestion by role [top, jungle, mid, bot, suppoer], optional summoner name argument to give a champ you haven\'t gotten a chest for yet', inline = False)
+    embed.add_field(name = '!help', value='Gives this message', inline = False)
 
     await ctx.send(embed=embed)
 
