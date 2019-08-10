@@ -1,3 +1,0 @@
-get summoner info  (id, accountId, puuid, name, profileIconId, revisionDate, summonerLevel)
-
-https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/dotsalot?api_key=*
