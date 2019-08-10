@@ -1,1 +1,4 @@
-git+git://github.com/Rapptz/discord.py.git@async#egg=discord
+git+https://github.com/Rapptz/discord.py@rewrite#egg=discord.py
+discord
+requests
+random
