@@ -1,1 +1,1 @@
-worker: python leagueBot.py
+worker: python3 leagueBot.py
