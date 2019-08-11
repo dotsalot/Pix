@@ -7,8 +7,8 @@ import  os
 from leagueDict import queueMode, ranks, queueId, champsById, roles, champsByName
 
 #for heroku deployment
-key = os.environ['key']
-token = os.environ['token']
+key = str(os.environ['key'])
+token = str(os.environ['token'])
 
 #api calls
 def summonerInfoAPI(name): #used to get encrypted summoner id
