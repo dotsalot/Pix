@@ -2,8 +2,13 @@ import discord
 from discord.ext import commands
 import requests
 from random import choice
-from secrets import key, token
+import  os
+# from secrets import key, token
 from leagueDict import queueMode, ranks, queueId, champsById, roles, champsByName
+
+#for heroku deployment
+key = os.environ['key']
+token = os.environ['token']
 
 #api calls
 def summonerInfoAPI(name): #used to get encrypted summoner id
