@@ -215,7 +215,7 @@ async def help(ctx):
     embed.add_field(name = '!game summonerName', value = 'Gives the game information of the summoner, remember no spaces!', inline = False)
     embed.add_field(name = '!info summonerName', value = 'Gives the ranked information of the summoner, remember no spaces!', inline = False)
     embed.add_field(name = '!tft [summonerNames]', value = 'Gives the ranked information of the summoners, remember no spaces in the names, separate individual summoners by a space!', inline = False)
-    embed.add_field(name = '!random role [summonerName]', value = 'Gives a random champ suggestion by role [top, jungle, mid, bot, suppoer], optional summoner name argument to give a champ you haven\'t gotten a chest for yet', inline = False)
+    embed.add_field(name = '!random role [summonerName]', value = 'Gives a random champ suggestion by role [top, jungle, mid, bot, support], optional summoner name argument to give a champ you haven\'t gotten a chest for yet', inline = False)
     embed.add_field(name = '!help', value='Gives this message', inline = False)
 
     await ctx.send(embed=embed)
