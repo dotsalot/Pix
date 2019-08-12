@@ -3,11 +3,11 @@ from discord.ext import commands
 import requests
 from random import choice
 from leagueDict import queueMode, ranks, queueId, champsById, roles, champsByName
-from secrets import key, token #for running locally
+# from secrets import key, token #for running locally
 
-# import os #for heroku deployment, riot api key, discord bot token stored in config vars
-# key = str(os.environ['key'])
-# token = str(os.environ['token'])
+import os #for heroku deployment, riot api key, discord bot token stored in config vars
+key = str(os.environ['key'])
+token = str(os.environ['token'])
 
 #api calls
 def summonerInfoAPI(name): #used to get encrypted summoner id
