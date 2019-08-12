@@ -2,11 +2,10 @@ import discord
 from discord.ext import commands
 import requests
 from random import choice
-import  os
-# from secrets import key, token
 from leagueDict import queueMode, ranks, queueId, champsById, roles, champsByName
+# from secrets import key, token #for running locally
 
-#for heroku deployment
+import os #for heroku deployment, riot api key, discord bot token stored in config vars
 key = str(os.environ['key'])
 token = str(os.environ['token'])
 
@@ -43,7 +42,7 @@ def divisionInfo(queue, tier):
 TOKEN = token
 
 bot = commands.Bot(command_prefix  = '!')
-bot.remove_command('help')
+bot.remove_command('help') #for a custom help function
 
 @bot.event
 async def on_ready():
@@ -91,8 +90,6 @@ async def info(ctx, name: str):
         response += (mode + queueInfo + winRatio + winLoss)
     await ctx.send(response)
 
-    
-
 @bot.command() #get game info
 async def game(ctx, name: str):
     summonerInfoRequest = summonerInfoAPI(name)
@@ -133,7 +130,6 @@ async def game(ctx, name: str):
                 break
         if 'rank' not in info:
             info['rank'] = 'Unranked'
-
         if player['teamId'] == 100:
             blue.append(info)
         else:
@@ -207,10 +203,9 @@ async  def random(ctx, role, name = None):
             if not champInfo['chestGranted']:
                 await ctx.send(f'You haven\'t gotten a chest for **{champ}** yet')
                 return
-
         champ = choice(roles[role])
 
-    await ctx.send(f'Wow! You have no chests available for {role}!')
+    await ctx.send(f'You have no chests available for {role}!')
 
 @bot.command()
 async def help(ctx):
@@ -219,8 +214,8 @@ async def help(ctx):
     embed.add_field(name = '!hello', value = 'Says hello!', inline = False)
     embed.add_field(name = '!game summonerName', value = 'Gives the game information of the summoner, remember no spaces!', inline = False)
     embed.add_field(name = '!info summonerName', value = 'Gives the ranked information of the summoner, remember no spaces!', inline = False)
-    embed.add_field(name = '!tft [summonerName]s', value = 'Gives the ranked information of the summoners, remember no spaces in the names, separate individual summoners by a space!', inline = False)
-    embed.add_field(name = 'random role [summonerName]', value = 'Gives a random champ suggestion by role [top, jungle, mid, bot, suppoer], optional summoner name argument to give a champ you haven\'t gotten a chest for yet', inline = False)
+    embed.add_field(name = '!tft [summonerNames]', value = 'Gives the ranked information of the summoners, remember no spaces in the names, separate individual summoners by a space!', inline = False)
+    embed.add_field(name = '!random role [summonerName]', value = 'Gives a random champ suggestion by role [top, jungle, mid, bot, suppoer], optional summoner name argument to give a champ you haven\'t gotten a chest for yet', inline = False)
     embed.add_field(name = '!help', value='Gives this message', inline = False)
 
     await ctx.send(embed=embed)
