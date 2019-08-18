@@ -90,6 +90,40 @@ async def info(ctx, name: str):
         response += (mode + queueInfo + winRatio + winLoss)
     await ctx.send(response)
 
+@bot.command() #get summoner info
+async def stats(ctx, name: str):
+    summonerInfoRequest = summonerInfoAPI(name)
+    #summoner  not  found/bad api key
+    if 'status' in summonerInfoRequest:
+        response = f'> Error! Summoner not found (or bad API key)'
+        await ctx.send(response)
+        return
+    #summoner found
+    encryptedSummonerId = summonerInfoRequest['id']
+    summonerName = summonerInfoRequest['name']
+    detailedInfoRequest = detailedInfoAPI(encryptedSummonerId)
+    summonerRankedInfo = f'>>> __**{summonerName}** ranked info:__\n'
+    response = summonerRankedInfo
+    if len(detailedInfoRequest) == 0:
+        response += 'Unranked in all queues!'
+        await ctx.send(response)
+        return
+    for queue in detailedInfoRequest:
+        queueType = queueMode[queue['queueType']]
+        tier = ranks[queue['tier']]
+        division = divisionInfo(queue, tier)
+        lp =  queue['leaguePoints']
+        wins  = queue['wins']
+        losses = queue['losses']
+
+        mode = f'**{queueType}:**\n'
+        queueInfo = f'\t{tier} {division} {lp} LP\n'
+        winRatio = f'\t{int(wins/(losses+wins)*100)}% win ratio\n'
+        winLoss = f'\t{wins} wins {losses} losses\n'
+        response += (mode + queueInfo + winRatio + winLoss)
+    await ctx.send(response)
+
+
 @bot.command() #get game info
 async def game(ctx, name: str):
     summonerInfoRequest = summonerInfoAPI(name)
@@ -214,6 +248,7 @@ async def help(ctx):
     embed.add_field(name = '!hello', value = 'Says hello!', inline = False)
     embed.add_field(name = '!game summonerName', value = 'Gives the game information of the summoner, remember no spaces!', inline = False)
     embed.add_field(name = '!info summonerName', value = 'Gives the ranked information of the summoner, remember no spaces!', inline = False)
+    embed.add_field(name = '!stats summonerName', value = 'Gives the ranked information of the summoner, remember no spaces!', inline = False)
     embed.add_field(name = '!tft [summonerNames]', value = 'Gives the ranked information of the summoners, remember no spaces in the names, separate individual summoners by a space!', inline = False)
     embed.add_field(name = '!random role [summonerName]', value = 'Gives a random champ suggestion by role [top, jungle, mid, bot, support], optional summoner name argument to give a champ you haven\'t gotten a chest for yet', inline = False)
     embed.add_field(name = '!help', value='Gives this message', inline = False)
