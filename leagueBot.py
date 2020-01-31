@@ -193,8 +193,8 @@ async def tft(ctx, *args):
                 TFTInfoRequest = TFTInfoAPI(encryptedSummonerId)
                 ranked = False
                 if len(TFTInfoRequest) != 0:
-                    tier = ranks[TFTInfoRequest['tier']]
-                    division = divisionInfo(TFTInfoRequest, tier)
+                    tier = ranks[TFTInfoRequest[0]['tier']]
+                    division = divisionInfo(TFTInfoRequest[0], tier)
                     ranked = True
                 if ranked:
                     rank = f'{tier} {division}'
