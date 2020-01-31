@@ -3,11 +3,11 @@ from discord.ext import commands
 import requests
 from random import choice
 from leagueDict import queueMode, ranks, queueId, champsById, roles, champsByName
-from secrets import key, token #for running locally
+# from secrets import key, token #for running locally
 
-# import os #for heroku deployment, riot api key, discord bot token stored in config vars
-# key = str(os.environ['key'])
-# token = str(os.environ['token'])
+import os #for heroku deployment, riot api key, discord bot token stored in config vars
+key = str(os.environ['key'])
+token = str(os.environ['token'])
 
 #api calls
 def summonerInfoAPI(name): #used to get encrypted summoner id
@@ -243,10 +243,10 @@ async def help(ctx):
     embed = discord.Embed(title='Pix!!', description='Pix is here to help! List of commands are:', color = 0xeee657)
 
     embed.add_field(name = '!hello', value = 'Says hello!', inline = False)
-    embed.add_field(name = '!game summonerName', value = 'Gives the game information of the summoner, remember no spaces!', inline = False)
-    embed.add_field(name = '!info summonerName', value = 'Gives the ranked information of the summoner, remember no spaces!', inline = False)
-    embed.add_field(name = '!stats summonerName', value = 'Gives the ranked information of the summoner, remember no spaces!', inline = False)
-    embed.add_field(name = '!tft [summonerNames]', value = 'Gives the ranked information of the summoners, remember no spaces in the names, separate individual summoners by a space!', inline = False)
+    embed.add_field(name = '!game summonerName', value = 'Gives the game information of the summoner', inline = False)
+    embed.add_field(name = '!info summonerName', value = 'Gives the ranked information of the summoner', inline = False)
+    embed.add_field(name = '!stats summonerName', value = 'Gives the ranked information of the summoner', inline = False)
+    embed.add_field(name = '!tft [summonerNames]', value = 'Gives the ranked information of the summoners, separate summoner names by spaces or commas', inline = False)
     embed.add_field(name = '!random role [summonerName]', value = 'Gives a random champ suggestion by role [top, jungle, mid, bot, support], optional summoner name argument to give a champ you haven\'t gotten a chest for yet', inline = False)
     embed.add_field(name = '!help', value='Gives this message', inline = False)
 
