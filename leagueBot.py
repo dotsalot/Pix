@@ -183,23 +183,24 @@ async def tft(ctx, *args):
     else:
         players = args
     for name in players:
-        summonerInfoRequest = summonerInfoAPI(name)
-        if 'status' in summonerInfoRequest:
-            embed.add_field(name = name, value = 'Summoner not found')
-        else:
-            encryptedSummonerId = summonerInfoRequest['id']
-            summonerName = summonerInfoRequest['name']
-            TFTInfoRequest = TFTInfoAPI(encryptedSummonerId)[0]
-            ranked = False
-            if len(TFTInfoRequest) != 0:
-                tier = ranks[TFTInfoRequest['tier']]
-                division = divisionInfo(TFTInfoRequest, tier)
-                ranked = True
-            if ranked:
-                rank = f'{tier} {division}'
+        if len(name) >= 3 and len(name) <= 16:
+            summonerInfoRequest = summonerInfoAPI(name)
+            if 'status' in summonerInfoRequest:
+                embed.add_field(name = name, value = 'Summoner not found')
             else:
-                rank  = 'Unranked'
-            embed.add_field(name = f'{summonerName}', value = f'{rank}')
+                encryptedSummonerId = summonerInfoRequest['id']
+                summonerName = summonerInfoRequest['name']
+                TFTInfoRequest = TFTInfoAPI(encryptedSummonerId)[0]
+                ranked = False
+                if len(TFTInfoRequest) != 0:
+                    tier = ranks[TFTInfoRequest['tier']]
+                    division = divisionInfo(TFTInfoRequest, tier)
+                    ranked = True
+                if ranked:
+                    rank = f'{tier} {division}'
+                else:
+                    rank  = 'Unranked'
+                embed.add_field(name = f'{summonerName}', value = f'{rank}')
     await ctx.send(embed = embed)
 
 @bot.command()
@@ -246,7 +247,7 @@ async def help(ctx):
     embed.add_field(name = '!game summonerName', value = 'Gives the game information of the summoner', inline = False)
     embed.add_field(name = '!info summonerName', value = 'Gives the ranked information of the summoner', inline = False)
     embed.add_field(name = '!stats summonerName', value = 'Gives the ranked information of the summoner', inline = False)
-    embed.add_field(name = '!tft [summonerNames]', value = 'Gives the ranked information of the summoners, separate summoner names by spaces or commas', inline = False)
+    embed.add_field(name = '!tft [summonerNames]', value = 'Gives the ranked information of the summoners, separate summoner names by spaces or commas [Note: for a single summoner, do not use spaces]', inline = False)
     embed.add_field(name = '!random role [summonerName]', value = 'Gives a random champ suggestion by role [top, jungle, mid, bot, support], optional summoner name argument to give a champ you haven\'t gotten a chest for yet', inline = False)
     embed.add_field(name = '!help', value='Gives this message', inline = False)
 
