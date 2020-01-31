@@ -3,19 +3,23 @@ from discord.ext import commands
 import requests
 from random import choice
 from leagueDict import queueMode, ranks, queueId, champsById, roles, champsByName
-# from secrets import key, token #for running locally
+from secrets import key, token #for running locally
 
-import os #for heroku deployment, riot api key, discord bot token stored in config vars
-key = str(os.environ['key'])
-token = str(os.environ['token'])
+# import os #for heroku deployment, riot api key, discord bot token stored in config vars
+# key = str(os.environ['key'])
+# token = str(os.environ['token'])
 
 #api calls
 def summonerInfoAPI(name): #used to get encrypted summoner id
     summonerInfoURL = f'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}?api_key={key}'
     return requests.get(url = summonerInfoURL).json()
 
-def detailedInfoAPI(encryptedSummonerId): #used to get ranked info  for summoner
+def detailedInfoAPI(encryptedSummonerId): #used to get ranked info for summoner
     detailedInfoURL  =  f'https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{encryptedSummonerId}?api_key={key}'
+    return requests.get(url  =  detailedInfoURL).json()
+
+def TFTInfoAPI(encryptedSummonerId): #used to get ranked TFT info for summoner
+    detailedInfoURL  =  f'https://na1.api.riotgames.com/tft/league/v1/entries/by-summoner/{encryptedSummonerId}?api_key={key}'
     return requests.get(url  =  detailedInfoURL).json()
 
 def gameInfoAPI(encryptedSummonerId): #used to get match info
@@ -57,8 +61,11 @@ async def hello(ctx):
     member = ctx.message.author.id
     await ctx.send(f'Hello <@{member}>! Remember to have fun!')
 
-@bot.command() #get summoner info
-async def info(ctx, name: str):
+@bot.command(pass_context = True , aliases=['stats']) #get summoner info
+async def info(ctx, *args):
+    name = ''
+    for arg in args:
+        name += arg
     summonerInfoRequest = summonerInfoAPI(name)
     #summoner  not  found/bad api key
     if 'status' in summonerInfoRequest:
@@ -69,63 +76,48 @@ async def info(ctx, name: str):
     encryptedSummonerId = summonerInfoRequest['id']
     summonerName = summonerInfoRequest['name']
     detailedInfoRequest = detailedInfoAPI(encryptedSummonerId)
+    TFTInfoRequest = TFTInfoAPI(encryptedSummonerId)[0]
     summonerRankedInfo = f'>>> __**{summonerName}** ranked info:__\n'
     response = summonerRankedInfo
-    if len(detailedInfoRequest) == 0:
+    if len(detailedInfoRequest) == 0 and len(TFTInfoRequest) == 0:
         response += 'Unranked in all queues!'
         await ctx.send(response)
         return
-    for queue in detailedInfoRequest:
-        queueType = queueMode[queue['queueType']]
-        tier = ranks[queue['tier']]
-        division = divisionInfo(queue, tier)
-        lp =  queue['leaguePoints']
-        wins  = queue['wins']
-        losses = queue['losses']
+    if len(detailedInfoRequest) != 0:
+        for queue in detailedInfoRequest:
+            queueType = queueMode[queue['queueType']]
+            tier = ranks[queue['tier']]
+            division = divisionInfo(queue, tier)
+            lp =  queue['leaguePoints']
+            wins  = queue['wins']
+            losses = queue['losses']
+
+            mode = f'**{queueType}:**\n'
+            queueInfo = f'\t{tier} {division} {lp} LP\n'
+            winRatio = f'\t{int(wins/(losses+wins)*100)}% win ratio\n'
+            winLoss = f'\t{wins} wins {losses} losses\n'
+            response += (mode + queueInfo + winRatio + winLoss)
+    if len(TFTInfoRequest) != 0:
+        queueType = queueMode[TFTInfoRequest['queueType']]
+        tier = ranks[TFTInfoRequest['tier']]
+        division = divisionInfo(TFTInfoRequest, tier)
+        lp =  TFTInfoRequest['leaguePoints']
+        wins  = TFTInfoRequest['wins']
+        losses = TFTInfoRequest['losses']
 
         mode = f'**{queueType}:**\n'
         queueInfo = f'\t{tier} {division} {lp} LP\n'
         winRatio = f'\t{int(wins/(losses+wins)*100)}% win ratio\n'
         winLoss = f'\t{wins} wins {losses} losses\n'
         response += (mode + queueInfo + winRatio + winLoss)
+
     await ctx.send(response)
-
-@bot.command() #get summoner info
-async def stats(ctx, name: str):
-    summonerInfoRequest = summonerInfoAPI(name)
-    #summoner  not  found/bad api key
-    if 'status' in summonerInfoRequest:
-        response = f'> Error! Summoner not found (or bad API key)'
-        await ctx.send(response)
-        return
-    #summoner found
-    encryptedSummonerId = summonerInfoRequest['id']
-    summonerName = summonerInfoRequest['name']
-    detailedInfoRequest = detailedInfoAPI(encryptedSummonerId)
-    summonerRankedInfo = f'>>> __**{summonerName}** ranked info:__\n'
-    response = summonerRankedInfo
-    if len(detailedInfoRequest) == 0:
-        response += 'Unranked in all queues!'
-        await ctx.send(response)
-        return
-    for queue in detailedInfoRequest:
-        queueType = queueMode[queue['queueType']]
-        tier = ranks[queue['tier']]
-        division = divisionInfo(queue, tier)
-        lp =  queue['leaguePoints']
-        wins  = queue['wins']
-        losses = queue['losses']
-
-        mode = f'**{queueType}:**\n'
-        queueInfo = f'\t{tier} {division} {lp} LP\n'
-        winRatio = f'\t{int(wins/(losses+wins)*100)}% win ratio\n'
-        winLoss = f'\t{wins} wins {losses} losses\n'
-        response += (mode + queueInfo + winRatio + winLoss)
-    await ctx.send(response)
-
 
 @bot.command() #get game info
-async def game(ctx, name: str):
+async def game(ctx, *args):
+    name = ''
+    for arg in args:
+        name += arg
     summonerInfoRequest = summonerInfoAPI(name)
     #summoner not  found/bad api key
     if 'status' in summonerInfoRequest:
@@ -182,25 +174,27 @@ async def game(ctx, name: str):
 @bot.command() #tft ranked info
 async def tft(ctx, *args):
     embed  = discord.Embed(title  =  'TFT', description  = 'Ranked stats for:')
+    inputstr = ''
     for arg in  args:
-        if arg[-1] == ',':
-            name = arg[:-1]
-        else:
-            name  =  arg
+        inputstr += arg
+    if ',' in inputstr:
+        inputstr.replace(' ', '')
+        players = inputstr.split(',')
+    else:
+        players = args
+    for name in players:
         summonerInfoRequest = summonerInfoAPI(name)
         if 'status' in summonerInfoRequest:
             embed.add_field(name = name, value = 'Summoner not found')
         else:
             encryptedSummonerId = summonerInfoRequest['id']
             summonerName = summonerInfoRequest['name']
-            detailedInfoRequest = detailedInfoAPI(encryptedSummonerId)
+            TFTInfoRequest = TFTInfoAPI(encryptedSummonerId)[0]
             ranked = False
-            for queue in detailedInfoRequest:
-                if queue['queueType'] == 'RANKED_TFT':
-                    tier = ranks[queue['tier']]
-                    division = divisionInfo(queue, tier)
-                    ranked = True
-                    break
+            if len(TFTInfoRequest) != 0:
+                tier = ranks[TFTInfoRequest['tier']]
+                division = divisionInfo(TFTInfoRequest, tier)
+                ranked = True
             if ranked:
                 rank = f'{tier} {division}'
             else:
@@ -209,14 +203,17 @@ async def tft(ctx, *args):
     await ctx.send(embed = embed)
 
 @bot.command()
-async  def random(ctx, role, name = None):
+async  def random(ctx, role, *args):
+    name = ''
+    for arg in args:
+        name += arg
     role = role.lower()
     if role not in ['top', 'mid', 'jungle', 'bot', 'support']:
         response = 'Unrecognized role. List of accepted roles:\ntop\njungle\nmid\nbot\nsupport'
         await  ctx.send(response)
         return
     champ = choice(roles[role])
-    if  name == None: #only  want a random champ for a  role
+    if  name == '': #only  want a random champ for a  role
         await ctx.send(f'You wanna play {role}? Try **{champ}** this game')
         return
     seen = set()
