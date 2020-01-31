@@ -76,7 +76,7 @@ async def info(ctx, *args):
     encryptedSummonerId = summonerInfoRequest['id']
     summonerName = summonerInfoRequest['name']
     detailedInfoRequest = detailedInfoAPI(encryptedSummonerId)
-    TFTInfoRequest = TFTInfoAPI(encryptedSummonerId)[0]
+    TFTInfoRequest = TFTInfoAPI(encryptedSummonerId)
     summonerRankedInfo = f'>>> __**{summonerName}** ranked info:__\n'
     response = summonerRankedInfo
     if len(detailedInfoRequest) == 0 and len(TFTInfoRequest) == 0:
@@ -98,12 +98,12 @@ async def info(ctx, *args):
             winLoss = f'\t{wins} wins {losses} losses\n'
             response += (mode + queueInfo + winRatio + winLoss)
     if len(TFTInfoRequest) != 0:
-        queueType = queueMode[TFTInfoRequest['queueType']]
-        tier = ranks[TFTInfoRequest['tier']]
-        division = divisionInfo(TFTInfoRequest, tier)
-        lp =  TFTInfoRequest['leaguePoints']
-        wins  = TFTInfoRequest['wins']
-        losses = TFTInfoRequest['losses']
+        queueType = queueMode[TFTInfoRequest[0]['queueType']]
+        tier = ranks[TFTInfoRequest[0]['tier']]
+        division = divisionInfo(TFTInfoRequest[0], tier)
+        lp =  TFTInfoRequest[0]['leaguePoints']
+        wins  = TFTInfoRequest[0]['wins']
+        losses = TFTInfoRequest[0]['losses']
 
         mode = f'**{queueType}:**\n'
         queueInfo = f'\t{tier} {division} {lp} LP\n'
@@ -190,7 +190,7 @@ async def tft(ctx, *args):
             else:
                 encryptedSummonerId = summonerInfoRequest['id']
                 summonerName = summonerInfoRequest['name']
-                TFTInfoRequest = TFTInfoAPI(encryptedSummonerId)[0]
+                TFTInfoRequest = TFTInfoAPI(encryptedSummonerId)
                 ranked = False
                 if len(TFTInfoRequest) != 0:
                     tier = ranks[TFTInfoRequest['tier']]
